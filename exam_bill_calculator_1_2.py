@@ -80,6 +80,12 @@ RATE_SEED = [
 ]
 
 
+# Historical names/course codes are preloaded for convenience from the supplied FE
+# 2024-25 examination-bill archive. They are not a statement of current employment,
+# course ownership, course titles, or current student counts.
+TEACHER_SEED = ['Anwar Parvez', 'Dr. Abdullah Iqbal', 'Dr. Farah Deeba', 'Dr. Main Uddin Ahammad', 'Dr. Md. Rafikul Islam', 'Dr. Md. Shahabuddin', 'Dr. Md. Shofiul Azam', 'Dr. Md. Sofiul Alom', 'Dr. Mohammad Washim Dewan', 'Dr. Sanzida Rahman', 'Dr.Khurshida Sharmin', 'K. M. Mahdiuzzaman Sayed', 'Lopa Aunsary', 'Md. Abir Hossain', 'Md. Arman Ali', 'Md. Nurunnabi Sohel', 'Md. Saidur Rahman', 'Md. Zakirul Hasan', 'Mr. Md. Mahbubur Rahman', 'Prianka Mondol', 'Susmita Bhattacharjee', 'Dr. Md. Rashed Mia', 'Md. Rezaul Karim', 'Mr. Saddam Hossen', 'Prof. Dr. Mohammad Washim Dewan', 'Prof. Dr. Mohammad Zoynal Abedin', 'Dr. Md. Anowar Hossain', 'Dr. Md. Mozammel Hoque', 'Md. Mahbubur Rahman', 'Md. Mahfujur Rahman', 'Md. Zihan Babu', 'Mr. Motiur Rahman', 'Sheikh Md. Rokonul Islam', 'Sumita Ghosh', 'Mr. Md. Shariful Alam Emon', 'Prof. Dr. Hasan Md. Mostofa Afroz', 'Prof. Dr. Md. Arefin Kowser', 'Prof. Dr. Md. Shirazul Hoque Mollah', 'Saifullah Mahmud', 'Dr. Mohammad Jakir Hossain', 'Mamunur Rashid', 'Md. Mohin Uddin', 'Md. Simul Hosan Talukder', 'Ms. Afruza Haque', 'Prof. Dr. Abdullah Iqbal']
+COURSE_SEED = ['FE 2002', 'FE 2004', 'FE 2101', 'FE 2102', 'FE 2501', 'FE 2502', 'FE 2802', 'FE 3501', 'FE 3502', 'FE 3601', 'FE 3602', 'FE 3603', 'FE 3604', 'FE 3605', 'FE 4501', 'FE 4504', 'FE 4601', 'FE 4602', 'FE 4604', 'FE 4605', 'FE 4606', 'FE 4615', 'FE 4617', 'HSS 2801', 'ME 2801', 'ME 3606', 'ME 3801', 'ME 3802']
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -119,29 +125,7 @@ def config_value(name: str, default: str = "") -> str:
     except Exception:
         return default
 
-# The revised DUET undergraduate remuneration order contains serial numbers 1–16.
-# The PDF is the authority; these editable summaries are displayed on the first page.
-OFFICIAL_SCHEDULE_POINTS = [
-    (1, "Question paper setting", "Question-paper setting: Tk. 3,600 per question paper per section.", "Not specified in the order.", "Not specified in the order.", "1"),
-    (2, "Question-paper moderation", "The total moderation fee for courses under the designated examination committee is shared equally among participating moderators.", "Tk. 2,000 per moderator per year per semester.", "Tk. 5,000 per moderator per year per semester.", "1"),
-    (3, "Question-paper preparation", "Typing: Tk. 120 per question paper. Comparison, sketching, correction, distribution and related work: Tk. 1,450 per question paper. Printing: Tk. 50 per question paper. Amounts are shared equally among persons assigned to the respective work.", "Not specified in the order.", "Not specified in the order.", "1"),
-    (4, "Examination and answer-script work", "Answer-script examination: Tk. 100 per answer script per section. Assignment assessment: Tk. 50 per course, per teacher, per student. Class test: Tk. 60 per class-test per student. Answer-script scrutiny: Tk. 20 per answer script per section; maximum two scrutinizers per year per semester.", "Answer-script examiner: minimum Tk. 1,000 per examiner per section. Scrutinizer: minimum Tk. 1,500 per scrutinizer per year per semester.", "Maximum two scrutinizers per year per semester.", "1"),
-    (5, "Course-file preparation", "Tk. 6,000 per course file; shared equally among teachers assigned to the relevant course-file work.", "Not specified in the order.", "Not specified in the order.", "1"),
-    (6, "Practical subjects and industrial attachment", "Survey work: Tk. 1,000 per course per student. Sessional: Tk. 320 per course per student. Architecture only: Tk. 115 per course per student per contact hour. Central viva: Tk. 150 per semester per student. Industrial attachment/training: Tk. 750 per student. Apply the sharing rules stated in the order.", "Sessional: minimum Tk. 1,600 per teacher per sessional course.", "Architecture-specific rate applies only to Architecture. Other maximums not specified.", "1"),
-    (7, "Thesis, project, oral examination and capstone", "Thesis/project examination: Tk. 3,000 per thesis/project per examiner. Preliminary oral: Tk. 100 per examinee per examiner. Final oral: Tk. 250 per examinee per examiner. Thesis/project supervision: Tk. 6,000 per thesis/project. Capstone project: Tk. 3,000 per student. Apply the relevant board/equal-sharing rules and year-semester scope in the order.", "Not specified, except the supervision cap noted at right.", "Thesis/project supervision: maximum Tk. 24,000 per supervisor.", "1"),
-    (8, "Invigilation and examination-supervision duties", "Chief invigilator: Tk. 1,200/hour. Additional chief invigilator: Tk. 1,100/hour. Other invigilator: Tk. 1,000/hour. Controller of examinations: Tk. 1,000/hour. Deputy controller: Tk. 900/shift. Programmer/assistant controller: Tk. 800/shift. Assistant officer to chief invigilator: Tk. 700/shift. Other officer: Tk. 550/shift. Assistant/third-class employee: Tk. 200/hour. Fourth-class employee: Tk. 175/hour.", "Not specified in the order.", "Not specified in the order.", "1–2"),
-    (9, "Grade-sheet preparation", "Theoretical subject: Tk. 60 per course per student. Practical subject: Tk. 50 per course per student. Shared equally among relevant teachers.", "Not specified in the order.", "Not specified in the order.", "2"),
-    (10, "Grade-sheet scrutiny", "Theoretical subject: Tk. 30 per course per student. Practical subject: Tk. 12 per course per student. Shared equally among relevant teachers.", "Not specified in the order.", "Not specified in the order.", "2"),
-    (11, "Tabulation", "Tk. 90 per student; shared equally among persons assigned to the same work.", "Not specified in the undergraduate section of the order.", "Not specified in the undergraduate section of the order.", "2"),
-    (12, "Advisory fee and final graduation-result verification", "Advisory fee: Tk. 250 per semester per student. Verification of final graduation result: Tk. 800 per student.", "Not specified in the order.", "Not specified in the order.", "2"),
-    (13, "Computerized result preparation", "Tk. 12 per course per student; shared among persons appointed for the same work.", "Not specified in the order.", "Not specified in the order.", "2"),
-    (14, "Student-wise grade and GPA list verification", "Tk. 24 per student; shared among teachers assigned to the same work.", "Not specified in the order.", "Not specified in the order.", "2"),
-    (15, "Chairman, examination committee honorarium", "Tk. 4,800 per semester. Regular, Review and Special examinations are considered separately as stated in the order.", "Not specified in the order.", "Not specified in the order.", "2"),
-    (16, "Course coordinator", "Tk. 3,600 per year per semester. Review examinations are included with Regular examinations. For Special Examination, one bill is payable for all years and semesters.", "Not specified in the order.", "Not specified in the order.", "2"),
-]
-
 SCHEMA = [
-"""CREATE TABLE IF NOT EXISTS remuneration_schedule_points(point_no INTEGER PRIMARY KEY, title TEXT NOT NULL, rate_details TEXT NOT NULL, minimum_bill TEXT NOT NULL, maximum_bill TEXT NOT NULL, source_page TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by INTEGER)""",
 """CREATE TABLE IF NOT EXISTS departments(id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, bill_owner INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1)""",
 """CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, email TEXT UNIQUE NOT NULL COLLATE NOCASE, full_name TEXT NOT NULL, salt TEXT NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL, department_id INTEGER, verified INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, failed_logins INTEGER NOT NULL DEFAULT 0, locked_until TEXT, created_at TEXT NOT NULL, FOREIGN KEY(department_id) REFERENCES departments(id))""",
 """CREATE TABLE IF NOT EXISTS email_tokens(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(user_id) REFERENCES users(id))""",
@@ -182,9 +166,17 @@ class Repository:
             for sql in SCHEMA: con.execute(sql)
             for name in TEACHING_DEPARTMENTS:
                 con.execute("INSERT OR IGNORE INTO departments(name,bill_owner) VALUES(?,?)", (name, int(name in BILL_DEPARTMENTS)))
-            # Seed the official undergraduate schedule once; later edits are preserved in SQLite.
-            for point_no, title, details, minimum, maximum, page_no in OFFICIAL_SCHEDULE_POINTS:
-                con.execute("INSERT OR IGNORE INTO remuneration_schedule_points(point_no,title,rate_details,minimum_bill,maximum_bill,source_page,updated_at,updated_by) VALUES(?,?,?,?,?,?,?,NULL)", (point_no,title,details,minimum,maximum,page_no,now_iso()))
+            # Preload historical teacher names and course codes without inventing titles,
+            # department assignments, or present-day counts. Users can correct/deactivate them.
+            for teacher_name in TEACHER_SEED:
+                con.execute("INSERT INTO teachers(full_name,created_at) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM teachers WHERE full_name=?)", (teacher_name, now_iso(), teacher_name))
+            dept_names = {r["name"]: r["id"] for r in con.execute("SELECT id,name FROM departments").fetchall()}
+            for course_code in COURSE_SEED:
+                prefix = course_code.split()[0]
+                dept_name = {"FE":"Food Engineering (FE)", "ME":"Mechanical Engineering (ME)", "HSS":"Humanities & Social Sciences"}.get(prefix, "Food Engineering (FE)")
+                dept_id = dept_names.get(dept_name)
+                if dept_id:
+                    con.execute("INSERT INTO courses(code,title,teaching_department_id,subject_type) SELECT ?,?,?, 'Theory' WHERE NOT EXISTS (SELECT 1 FROM courses WHERE code=? AND teaching_department_id=?)", (course_code, "TITLE TO BE CONFIRMED FROM APPROVED CURRICULUM", dept_id, course_code, dept_id))
             # Temporary no-verification mode: existing accounts become usable without email verification.
             con.execute("UPDATE users SET verified=1 WHERE verified=0")
             # Seed rates as drafts, never approved/active without authorized source review.
@@ -420,62 +412,36 @@ def show_table(rows, key=None):
     else: st.info("No records yet.")
 
 def page_dashboard(user):
+    """Compact landing page: essential counts and recent activity only."""
     st.header("Dashboard")
-    st.subheader("DUET revised undergraduate examination remuneration schedule")
-    st.caption("Source: Updated new Exam bill rate.pdf. The supplied PDF has undergraduate serial numbers 1–16 (not 12). Postgraduate/PhD rates are not included here. Minimum/maximum fields say ‘Not specified’ where the order does not state a limit.")
-
-    schedule = repo.rows("SELECT * FROM remuneration_schedule_points ORDER BY point_no")
-    summary = pd.DataFrame([{
-        "Point": r["point_no"],
-        "Bill item / category": r["title"],
-        "Bill rate(s)": r["rate_details"],
-        "Minimum bill / minimum rule": r["minimum_bill"],
-        "Maximum bill / maximum rule": r["maximum_bill"],
-        "PDF page": r["source_page"],
-    } for r in schedule])
-    st.dataframe(summary, use_container_width=True, hide_index=True, height=560,
-                 column_config={
-                     "Point": st.column_config.NumberColumn("Point", width="small"),
-                     "Bill item / category": st.column_config.TextColumn("Bill item / category", width="medium"),
-                     "Bill rate(s)": st.column_config.TextColumn("Bill rate(s)", width="large"),
-                     "Minimum bill / minimum rule": st.column_config.TextColumn("Minimum bill / minimum rule", width="medium"),
-                     "Maximum bill / maximum rule": st.column_config.TextColumn("Maximum bill / maximum rule", width="medium"),
-                     "PDF page": st.column_config.TextColumn("PDF page", width="small"),
-                 })
-
-    if user["role"] == "System Administrator":
-        with st.expander("Edit a remuneration point and save changes", expanded=False):
-            point_options = {f"Point {r['point_no']} — {r['title']}": r for r in schedule}
-            selected_label = st.selectbox("Select point", list(point_options.keys()), key="schedule_point_select")
-            selected = point_options[selected_label]
-            with st.form(f"edit_schedule_point_{selected['point_no']}"):
-                title = st.text_input("Point title", value=selected["title"])
-                details = st.text_area("Bill rates and conditions", value=selected["rate_details"], height=170)
-                minimum = st.text_area("Minimum bill / minimum rule", value=selected["minimum_bill"], height=90)
-                maximum = st.text_area("Maximum bill / maximum rule", value=selected["maximum_bill"], height=90)
-                source_page = st.text_input("PDF page(s)", value=selected["source_page"])
-                save = st.form_submit_button("Save this point", type="primary")
-            if save:
-                if not title.strip() or not details.strip():
-                    st.error("Point title and rate details cannot be empty.")
-                else:
-                    before = {k:selected[k] for k in ("title","rate_details","minimum_bill","maximum_bill","source_page")}
-                    repo.execute("UPDATE remuneration_schedule_points SET title=?,rate_details=?,minimum_bill=?,maximum_bill=?,source_page=?,updated_at=?,updated_by=? WHERE point_no=?",
-                                 (title.strip(),details.strip(),minimum.strip() or "Not specified in the order.",maximum.strip() or "Not specified in the order.",source_page.strip() or "Not confirmed",now_iso(),user["id"],selected["point_no"]))
-                    log_ui(user,"UPDATE","remuneration_schedule_point",selected["point_no"],before=before,after={"title":title.strip(),"rate_details":details.strip(),"minimum_bill":minimum.strip(),"maximum_bill":maximum.strip(),"source_page":source_page.strip()},reason="User edited the opening remuneration schedule")
-                    st.success(f"Point {selected['point_no']} saved to the app database.")
-                    st.rerun()
-        st.info("Edits are saved in the app's SQLite database and remain after app reruns as long as that database file persists. On Streamlit Cloud, configure durable storage if you need edits to survive instance replacement/redeployment.")
-
-    st.divider()
-    sessions=visible_sessions(user); ids=[s["id"] for s in sessions]
-    bills=repo.rows("SELECT b.*,t.full_name teacher,s.exam_name FROM bill_headers b JOIN teachers t ON t.id=b.teacher_id JOIN exam_sessions s ON s.id=b.session_id WHERE b.session_id IN ("+",".join("?" for _ in ids)+") ORDER BY b.id DESC",ids) if ids else []
-    rates=repo.rows("SELECT approval_status,COUNT(*) n FROM rates GROUP BY approval_status")
-    unresolved=repo.one("SELECT COUNT(*) n FROM reconciliation WHERE status='Unresolved'")["n"]
-    cols=st.columns(4); cols[0].metric("Accessible sessions",len(sessions)); cols[1].metric("Draft bills",sum(b["status"]=="Draft" for b in bills)); cols[2].metric("Approved bills",sum(b["status"]=="Approved" for b in bills)); cols[3].metric("Unresolved reconciliation rows",unresolved)
-    st.subheader("Recent examination sessions"); show_table(sessions[:10])
-    st.subheader("Rate approval status"); show_table(rates)
-    st.caption("The schedule summary is editable for reference and planning. Editing it does not automatically approve or change the separate bill-calculation rate records under Financial rates. Confirm official rates and approval status before generating payable bills.")
+    sessions = visible_sessions(user)
+    ids = [x["id"] for x in sessions]
+    bills = []
+    if ids:
+        marks = ",".join("?" for _ in ids)
+        bills = repo.rows(
+            f"SELECT b.*,t.full_name teacher,s.exam_name FROM bill_headers b "
+            f"JOIN teachers t ON t.id=b.teacher_id JOIN exam_sessions s ON s.id=b.session_id "
+            f"WHERE b.session_id IN ({marks}) ORDER BY b.id DESC", ids)
+    teacher_count = repo.one("SELECT COUNT(*) n FROM teachers WHERE active=1")["n"]
+    course_count = repo.one("SELECT COUNT(*) n FROM courses WHERE active=1")["n"]
+    department_count = repo.one("SELECT COUNT(*) n FROM departments WHERE active=1")["n"]
+    rate_count = repo.one("SELECT COUNT(*) n FROM rates WHERE study_level='Undergraduate'")["n"]
+    cols = st.columns(5)
+    cols[0].metric("Departments", department_count)
+    cols[1].metric("Teachers", teacher_count)
+    cols[2].metric("Courses", course_count)
+    cols[3].metric("Bill rates", rate_count)
+    cols[4].metric("Exam sessions", len(sessions))
+    c1, c2 = st.columns(2)
+    c1.metric("Draft bills", sum(x["status"] == "Draft" for x in bills))
+    c2.metric("Approved bills", sum(x["status"] == "Approved" for x in bills))
+    st.subheader("Recent examination sessions")
+    show_table(sessions[:8])
+    if bills:
+        st.subheader("Recent bills")
+        show_table([{k: b.get(k) for k in ("reference_no", "teacher", "exam_name", "status", "total", "updated_at")} for b in bills[:8]])
+    st.caption("Use Financial rates to edit and save rate values. Recalculate a draft bill to apply the current saved rate; previously generated bills remain historical snapshots.")
 
 def page_sessions(user):
     st.header("Examination sessions")
@@ -557,6 +523,30 @@ def page_departments_teachers_courses(user):
                 else:
                     try: tid=repo.execute("INSERT INTO teachers(full_name,employee_id,home_department_id,designation,email,created_at) VALUES(?,?,?,?,?,?)",(name.strip(),emp.strip() or None,dep["id"] if dep else None,des.strip() or None,email.strip() or None,now_iso())); log_ui(user,"CREATE","teacher",tid,after={"name":name,"department_id":dep["id"] if dep else None}); st.success("Teacher/person added."); st.rerun()
                     except Exception as e: st.error(str(e))
+            active_teachers = repo.rows("SELECT * FROM teachers WHERE active=1 ORDER BY full_name")
+            if active_teachers:
+                with st.expander("Edit or deactivate a teacher/person"):
+                    target_teacher = st.selectbox("Teacher/person", active_teachers, format_func=lambda x:x["full_name"], key="teacher_edit_target")
+                    with st.form("teacher_edit_form"):
+                        tname=st.text_input("Full name", value=target_teacher["full_name"])
+                        tdesignation=st.text_input("Designation", value=target_teacher["designation"] or "")
+                        temail=st.text_input("Email", value=target_teacher["email"] or "")
+                        treason=st.text_input("Reason for change", key="teacher_edit_reason")
+                        tc1,tc2=st.columns(2); t_save=tc1.form_submit_button("Save teacher changes"); t_deactivate=tc2.form_submit_button("Deactivate teacher")
+                    if t_save or t_deactivate:
+                        try:
+                            if not treason.strip(): raise ValueError("Reason is required.")
+                            if t_save:
+                                if not tname.strip(): raise ValueError("Name is required.")
+                                repo.execute("UPDATE teachers SET full_name=?,designation=?,email=? WHERE id=?", (tname.strip(),tdesignation.strip() or None,temail.strip() or None,target_teacher["id"]))
+                                log_ui(user,"EDIT_TEACHER","teacher",target_teacher["id"],before=target_teacher,after={"full_name":tname.strip(),"designation":tdesignation.strip(),"email":temail.strip()},reason=treason.strip())
+                                st.success("Teacher/person updated.")
+                            else:
+                                repo.execute("UPDATE teachers SET active=0 WHERE id=?",(target_teacher["id"],))
+                                log_ui(user,"DEACTIVATE_TEACHER","teacher",target_teacher["id"],before=target_teacher,after={"active":0},reason=treason.strip())
+                                st.success("Teacher/person deactivated. Existing bills and assignments are preserved.")
+                            st.rerun()
+                        except Exception as e: st.error(str(e))
     with tabs[2]:
         courses=repo.rows("SELECT c.*,d.name teaching_department FROM courses c JOIN departments d ON d.id=c.teaching_department_id ORDER BY c.code"); show_table(courses)
         if user["role"] in ("System Administrator","Department Administrator","Course Coordinator"):
@@ -568,6 +558,33 @@ def page_departments_teachers_courses(user):
                 else:
                     try: cid=repo.execute("INSERT INTO courses(code,title,teaching_department_id,subject_type,contact_hours) VALUES(?,?,?,?,?)",(code.strip(),title.strip(),dep["id"],typ,hours.strip() or None)); log_ui(user,"CREATE","course",cid,after={"code":code,"title":title,"teaching_department":dep["name"]}); st.success("Course added."); st.rerun()
                     except sqlite3.IntegrityError: st.error("Course code already exists in this teaching department.")
+            active_courses = repo.rows("SELECT c.*,d.name teaching_department FROM courses c JOIN departments d ON d.id=c.teaching_department_id WHERE c.active=1 ORDER BY c.code")
+            if active_courses:
+                with st.expander("Edit or deactivate a course"):
+                    target_course = st.selectbox("Course", active_courses, format_func=lambda x:f"{x['code']} — {x['title']}", key="course_edit_target")
+                    with st.form("course_edit_form"):
+                        ccode=st.text_input("Course code", value=target_course["code"])
+                        ctitle=st.text_input("Course title", value=target_course["title"])
+                        cdep=st.selectbox("Teaching department", deps, index=next((i for i,d in enumerate(deps) if d["id"]==target_course["teaching_department_id"]),0), format_func=lambda d:d["name"])
+                        ctype=st.selectbox("Subject type", ["Theory","Practical","Mixed"], index=["Theory","Practical","Mixed"].index(target_course["subject_type"] if target_course["subject_type"] in ["Theory","Practical","Mixed"] else "Theory"))
+                        chours=st.text_input("Contact hours", value=target_course["contact_hours"] or "")
+                        creason=st.text_input("Reason for change", key="course_edit_reason")
+                        cc1,cc2=st.columns(2); c_save=cc1.form_submit_button("Save course changes"); c_deactivate=cc2.form_submit_button("Deactivate course")
+                    if c_save or c_deactivate:
+                        try:
+                            if not creason.strip(): raise ValueError("Reason is required.")
+                            if c_save:
+                                if not ccode.strip() or not ctitle.strip(): raise ValueError("Course code and title are required.")
+                                repo.execute("UPDATE courses SET code=?,title=?,teaching_department_id=?,subject_type=?,contact_hours=? WHERE id=?", (ccode.strip(),ctitle.strip(),cdep["id"],ctype,chours.strip() or None,target_course["id"]))
+                                log_ui(user,"EDIT_COURSE","course",target_course["id"],before=target_course,after={"code":ccode.strip(),"title":ctitle.strip(),"department_id":cdep["id"],"subject_type":ctype,"contact_hours":chours.strip()},reason=creason.strip())
+                                st.success("Course updated.")
+                            else:
+                                repo.execute("UPDATE courses SET active=0 WHERE id=?",(target_course["id"],))
+                                log_ui(user,"DEACTIVATE_COURSE","course",target_course["id"],before=target_course,after={"active":0},reason=creason.strip())
+                                st.success("Course deactivated. Existing course offerings and bills are preserved.")
+                            st.rerun()
+                        except sqlite3.IntegrityError: st.error("That course code already exists in the selected department.")
+                        except Exception as e: st.error(str(e))
         sessions=visible_sessions(user)
         if sessions:
             st.markdown("**Attach a course to a class group and record its eligible registration count.**")
@@ -586,6 +603,39 @@ def page_rates(user):
     st.header("Financial rates and versions")
     st.warning("Rates seeded from the supplied prompt are drafts and inactive. Before financial use, confirm the exact official PDF wording, page/item, effective date, minimum/maximum scope, and applicability. Unapproved rates cannot generate payable amounts.")
     rates=repo.rows("SELECT r.*,s.title source_title FROM rates r LEFT JOIN sources s ON s.id=r.source_id ORDER BY r.item_name,r.version DESC"); show_table(rates)
+    if user["role"] in ("System Administrator","Department Administrator") and rates:
+        st.subheader("Edit and save an existing rate")
+        st.caption("Saved values are used when a new draft bill is calculated. Existing bill lines are retained as historical snapshots until recalculated.")
+        chosen = st.selectbox("Rate to edit", rates, format_func=lambda r: f"#{r['id']} · {r['item_name']} · Tk. {r['amount']} · v{r['version']}", key="edit_rate_select")
+        with st.form("edit_existing_rate"):
+            ec1, ec2 = st.columns(2)
+            item = ec1.text_input("Bill item", value=chosen["item_name"])
+            amount = ec2.text_input("Rate amount (BDT)", value=str(chosen["amount"]))
+            unit = ec1.text_input("Unit", value=chosen["unit"] or "")
+            dist = ec2.selectbox("Distribution", ["individual", "equal sharing", "board sharing"], index=["individual", "equal sharing", "board sharing"].index(chosen["distribution"] if chosen["distribution"] in ["individual", "equal sharing", "board sharing"] else "individual"))
+            ec3, ec4 = st.columns(2)
+            minimum = ec3.text_input("Minimum amount (optional)", value=chosen["minimum_amount"] or "")
+            maximum = ec4.text_input("Maximum amount (optional)", value=chosen["maximum_amount"] or "")
+            mins = ec3.text_input("Minimum scope", value=chosen["min_scope"] or "")
+            maxs = ec4.text_input("Maximum scope", value=chosen["max_scope"] or "")
+            reason = st.text_input("Reason for edit (required)")
+            save_edit = st.form_submit_button("Save rate changes")
+        if save_edit:
+            try:
+                amt = money(amount)
+                mn = money(minimum) if minimum.strip() else None
+                mx = money(maximum) if maximum.strip() else None
+                if not item.strip() or not unit.strip() or amt < 0: raise ValueError("Item, unit, and a non-negative rate are required.")
+                if mn is not None and mn < 0 or mx is not None and mx < 0: raise ValueError("Minimum and maximum cannot be negative.")
+                if mn is not None and mx is not None and mn > mx: raise ValueError("Minimum cannot exceed maximum.")
+                if not reason.strip(): raise ValueError("Enter a reason so the change is auditable.")
+                before = {k: chosen.get(k) for k in ("item_name", "amount", "unit", "minimum_amount", "maximum_amount", "min_scope", "max_scope", "distribution", "approval_status", "active")}
+                repo.execute("UPDATE rates SET item_name=?,amount=?,unit=?,minimum_amount=?,maximum_amount=?,min_scope=?,max_scope=?,distribution=?,change_reason=? WHERE id=?", (item.strip(), str(amt), unit.strip(), str(mn) if mn is not None else None, str(mx) if mx is not None else None, mins.strip() or None, maxs.strip() or None, dist, reason.strip(), chosen["id"]))
+                log_ui(user, "EDIT_RATE", "rate", chosen["id"], before=before, after={"item_name": item.strip(), "amount": str(amt), "unit": unit.strip(), "minimum_amount": str(mn) if mn is not None else None, "maximum_amount": str(mx) if mx is not None else None, "distribution": dist}, reason=reason.strip())
+                st.success("Rate saved. Recalculate the relevant draft bill to apply this saved rate.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Rate was not saved: {e}")
     if user["role"] in ("System Administrator","Department Administrator"):
         with st.expander("Add a new rate version",expanded=False):
             with st.form("add_rate"):
@@ -780,10 +830,8 @@ def main():
     user = get_public_access_user()
     st.session_state.user = user
     with st.sidebar:
-        st.title("Exam Bill Calculator")
-        st.caption("Access mode: Public (no sign-in)")
-        st.caption("Role: System Administrator (shared access)")
-        st.caption("Scope: " + (repo.one("SELECT name FROM departments WHERE id=?",(user["department_id"],))["name"] if user.get("department_id") and repo.one("SELECT name FROM departments WHERE id=?",(user["department_id"],)) else "System-wide / unassigned"))
+        st.title("Exam Bill Calculator 1.2")
+        st.caption("DUET · Examination bills")
         pages=["Dashboard","Examination sessions","Departments and class groups","Courses and teachers","Duty assignments","Financial rates","Individual and consolidated bills","Excel import and reconciliation","Review and approval","Reports and exports","User administration","Settings","About"]
         page=st.radio("Navigation",pages,label_visibility="collapsed")
         st.warning("Public access is enabled. Anyone with this link has administrator access.")
