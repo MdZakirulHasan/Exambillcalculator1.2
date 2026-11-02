@@ -108,6 +108,17 @@ def password_matches(password: str, salt_hex: str, hash_hex: str) -> bool:
     _, candidate = password_hash(password, bytes.fromhex(salt_hex))
     return hmac.compare_digest(candidate, hash_hex)
 
+def config_value(name: str, default: str = "") -> str:
+    """Read configuration from environment variables or Streamlit secrets."""
+    value = os.getenv(name)
+    if value:
+        return value
+    try:
+        value = st.secrets.get(name, default)
+        return str(value) if value is not None else default
+    except Exception:
+        return default
+
 SCHEMA = [
 """CREATE TABLE IF NOT EXISTS departments(id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, bill_owner INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1)""",
 """CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, email TEXT UNIQUE NOT NULL COLLATE NOCASE, full_name TEXT NOT NULL, salt TEXT NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL, department_id INTEGER, verified INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, failed_logins INTEGER NOT NULL DEFAULT 0, locked_until TEXT, created_at TEXT NOT NULL, FOREIGN KEY(department_id) REFERENCES departments(id))""",
@@ -187,8 +198,8 @@ def send_verification_email(email: str, token: str) -> None:
     with smtplib.SMTP(host,int(os.getenv("SMTP_PORT","587")),timeout=15) as server:
         server.starttls(); user=os.getenv("SMTP_USER") or sender; server.login(user,password); server.send_message(msg)
 
-def register_user(email: str, full_name: str, password: str, role: str, department_id: Optional[int]):
-    """Create an immediately usable account without email verification (temporary mode)."""
+def register_user(email: str, full_name: str, password: str, role: str, department_id: Optional[int], bootstrap_token: str = "") -> str:
+    """Create an account without email verification; a secret token can bootstrap the first administrator."""
     email = email.strip().lower()
     if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
         raise ValueError("Enter a valid email address.")
@@ -196,18 +207,25 @@ def register_user(email: str, full_name: str, password: str, role: str, departme
         raise ValueError("Enter your full name.")
     if len(password) < 12 or not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
         raise ValueError("Password must be at least 12 characters and include letters and digits.")
-    # Public self-registration is restricted to the least-privileged role.
-    # Elevated roles must be assigned by an existing System Administrator.
-    if role != "Course Coordinator":
-        raise PermissionError("Self-registration is limited to Course Coordinator. An administrator must assign elevated roles.")
+    # Self-registration remains least-privileged unless the operator supplies the
+    # deployment-only bootstrap secret. This is needed to approve the initial rates.
+    expected = config_value("EXAM_BILL_ADMIN_BOOTSTRAP_TOKEN")
+    assigned_role = "Course Coordinator"
+    if expected and bootstrap_token and hmac.compare_digest(bootstrap_token, expected):
+        if repo.one("SELECT id FROM users WHERE role='System Administrator' AND active=1"):
+            raise PermissionError("A System Administrator already exists; bootstrap registration is disabled.")
+        assigned_role = "System Administrator"
+    elif bootstrap_token:
+        raise PermissionError("Administrator bootstrap token is incorrect or not configured.")
     salt, hashed = password_hash(password)
     uid = repo.execute(
         "INSERT INTO users(email,full_name,salt,password_hash,role,department_id,verified,active,created_at) VALUES(?,?,?,?,?,?,1,1,?)",
-        (email, full_name.strip(), salt, hashed, "Course Coordinator", department_id, now_iso()),
+        (email, full_name.strip(), salt, hashed, assigned_role, department_id, now_iso()),
     )
     repo.audit(None, "REGISTER_NO_EMAIL_VERIFICATION", "user", uid,
-               after={"email": email, "role": "Course Coordinator", "department_id": department_id},
+               after={"email": email, "role": assigned_role, "department_id": department_id},
                reason="Temporary open-registration mode; email ownership was not verified.")
+    return assigned_role
 
 def login_user(email: str, password: str):
     email=email.strip().lower(); u=repo.one("SELECT * FROM users WHERE email=?",(email,))
@@ -373,12 +391,14 @@ def page_login():
         deps=department_options()
         with st.form("register_form"):
             full=st.text_input("Full name"); remail=st.text_input("Email address",key="reg_email"); rpw=st.text_input("Create password (12+ characters)",type="password",key="reg_pw")
-            st.caption("New accounts receive the Course Coordinator role. An administrator must grant elevated permissions.")
+            st.caption("New accounts receive Course Coordinator access. To initialize the app administrator, enter the deployment bootstrap token configured by the app owner.")
             dep=st.selectbox("Department access scope",["Not assigned"]+[f"{d['id']} — {d['name']}" for d in deps])
+            bootstrap=st.text_input("Administrator bootstrap token (optional)",type="password",help="Leave blank for a standard account. Only works when EXAM_BILL_ADMIN_BOOTSTRAP_TOKEN is configured in Streamlit secrets.")
             submitted=st.form_submit_button("Register")
         if submitted:
             try:
-                register_user(remail,full,rpw,"Course Coordinator",None if dep=="Not assigned" else int(dep.split(" — ")[0])); st.success("Account created. You can sign in immediately; email verification is disabled in this temporary mode.")
+                assigned_role=register_user(remail,full,rpw,"Course Coordinator",None if dep=="Not assigned" else int(dep.split(" — ")[0]),bootstrap)
+                st.success(f"Account created as {assigned_role}. You can sign in immediately; email verification is disabled in this temporary mode.")
             except sqlite3.IntegrityError: st.error("An account with this email already exists.")
             except Exception as e: st.error(str(e))
 
@@ -538,18 +558,27 @@ def page_duties(user):
     sessions=visible_sessions(user)
     if not sessions: st.info("Create or obtain access to an examination session first."); return
     sess=st.selectbox("Examination session",sessions,format_func=session_label,key="duty_sess")
-    groups=repo.rows("SELECT * FROM class_groups WHERE session_id=?",(sess["id"],)); teachers=repo.rows("SELECT * FROM teachers WHERE active=1 ORDER BY full_name"); rates=repo.rows("SELECT * FROM rates WHERE active=1 AND approval_status='Approved' AND study_level='Undergraduate' ORDER BY item_name")
+    groups=repo.rows("SELECT * FROM class_groups WHERE session_id=?",(sess["id"],)); teachers=repo.rows("SELECT * FROM teachers WHERE active=1 ORDER BY full_name")
+    # Show approved rates for normal use; if none are approved, expose drafts only for
+    # building provisional assignments after the admin has explicitly reviewed them.
+    rates=repo.rows("SELECT * FROM rates WHERE active=1 AND approval_status='Approved' AND study_level='Undergraduate' ORDER BY item_name")
+    provisional_rates=False
+    if not rates:
+        rates=repo.rows("SELECT * FROM rates WHERE study_level='Undergraduate' AND approval_status='Draft' ORDER BY item_name")
+        provisional_rates=bool(rates)
     duties=repo.rows("SELECT d.*,t.full_name teacher,r.amount rate_amount,r.version rate_version,r.approval_status FROM duty_assignments d JOIN teachers t ON t.id=d.teacher_id JOIN rates r ON r.id=d.rate_id WHERE d.session_id=? ORDER BY d.id DESC",(sess["id"],)); show_table(duties)
     if sess["status"] in ("Approved","Closed"): st.warning("This session is approved/closed; assignments are read-only."); return
     if user["role"] not in ("System Administrator","Department Administrator","Course Coordinator"): st.info("Your role does not permit duty assignment changes."); return
-    if not rates: st.warning("No approved active undergraduate rates are available. Approve a rate version first."); return
+    if not rates: st.warning("No undergraduate rates are available. Ask the System Administrator to initialize or import the rate schedule."); return
+    if provisional_rates:
+        st.warning("PROVISIONAL MODE: no rates are approved yet. You can prepare draft duty assignments, but bill amounts remain blocked from payable totals until an authorized reviewer approves the rates.")
     offerings=[]
     if groups:
         ids=[g["id"] for g in groups]; offerings=repo.rows("SELECT o.*,c.code,c.title FROM course_offerings o JOIN courses c ON c.id=o.course_id WHERE o.group_id IN ("+",".join("?" for _ in ids)+") ORDER BY c.code",ids)
     with st.form("new_duty"):
         group=st.selectbox("Class group (optional)",[None]+groups,format_func=lambda g:"Not group-specific" if g is None else f"{g['academic_year']}-{g['semester']} {g['category']} (count {g['student_count']})")
         offering=st.selectbox("Course offering (optional)",[None]+offerings,format_func=lambda o:"Not course-specific" if o is None else f"{o['code']} — {o['title']} (registered {o['registration_count']})")
-        teacher=st.selectbox("Duty-performing teacher/person",teachers,format_func=lambda t:t["full_name"]); rate=st.selectbox("Approved rate",rates,format_func=lambda r:f"{r['item_name']} — Tk. {r['amount']} / {r['unit']}")
+        teacher=st.selectbox("Duty-performing teacher/person",teachers,format_func=lambda t:t["full_name"]); rate=st.selectbox("Rate (approved rates first; drafts are provisional)",rates,format_func=lambda r:f"{r['item_name']} — Tk. {r['amount']} / {r['unit']} [{r['approval_status']}] ")
         q=st.text_input("Exact payable quantity (do not infer from class size)"); unit=st.text_input("Recorded quantity unit",value=rate["unit"]); scope=st.text_input("Calculation scope",value="Per recorded duty assignment"); formula=st.text_input("Formula / explanation",value="eligible quantity × approved rate"); assignees=st.multiselect("Eligible assignees for shared distribution",teachers,format_func=lambda t:t["full_name"]); rem=st.text_area("Supporting evidence / remarks"); save=st.form_submit_button("Create duty assignment")
     if save:
         try:
@@ -676,7 +705,7 @@ def page_users_settings(user):
             except Exception as e: st.error(str(e))
     st.subheader("Runtime configuration status")
     for key in ["EXAM_BILL_DB","EXAM_BILL_ADMIN_BOOTSTRAP_TOKEN","SMTP_HOST","SMTP_FROM","SMTP_PASSWORD","SMTP_PORT","SMTP_USER"]:
-        value=os.getenv(key); st.write(f"**{key}:** {'configured' if value else 'not configured'}")
+        value=config_value(key); st.write(f"**{key}:** {'configured' if value else 'not configured'}")
     st.caption("Secrets are read from environment variables and are never displayed. Local SQLite data may not persist on some cloud hosts; configure EXAM_BILL_DB to a durable writable volume.")
 
 def main():
