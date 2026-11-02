@@ -2,7 +2,7 @@
 """Exam Bill Calculator 1.2 — DUET undergraduate examination bill workflow.
 
 Run: streamlit run exam_bill_calculator_1_2.py
-Temporary mode: registration accepts any syntactically valid email and does not require email verification. Restrict access before production use.
+Public mode: sign-in and registration screens are removed; all visitors share administrator access. Do not use for confidential or production financial data.
 The revised remuneration rates are seeded as draft/unapproved because formal source-page
 metadata and scope interpretations must be confirmed by an authorized DUET administrator.
 """
@@ -119,7 +119,29 @@ def config_value(name: str, default: str = "") -> str:
     except Exception:
         return default
 
+# The revised DUET undergraduate remuneration order contains serial numbers 1–16.
+# The PDF is the authority; these editable summaries are displayed on the first page.
+OFFICIAL_SCHEDULE_POINTS = [
+    (1, "Question paper setting", "Question-paper setting: Tk. 3,600 per question paper per section.", "Not specified in the order.", "Not specified in the order.", "1"),
+    (2, "Question-paper moderation", "The total moderation fee for courses under the designated examination committee is shared equally among participating moderators.", "Tk. 2,000 per moderator per year per semester.", "Tk. 5,000 per moderator per year per semester.", "1"),
+    (3, "Question-paper preparation", "Typing: Tk. 120 per question paper. Comparison, sketching, correction, distribution and related work: Tk. 1,450 per question paper. Printing: Tk. 50 per question paper. Amounts are shared equally among persons assigned to the respective work.", "Not specified in the order.", "Not specified in the order.", "1"),
+    (4, "Examination and answer-script work", "Answer-script examination: Tk. 100 per answer script per section. Assignment assessment: Tk. 50 per course, per teacher, per student. Class test: Tk. 60 per class-test per student. Answer-script scrutiny: Tk. 20 per answer script per section; maximum two scrutinizers per year per semester.", "Answer-script examiner: minimum Tk. 1,000 per examiner per section. Scrutinizer: minimum Tk. 1,500 per scrutinizer per year per semester.", "Maximum two scrutinizers per year per semester.", "1"),
+    (5, "Course-file preparation", "Tk. 6,000 per course file; shared equally among teachers assigned to the relevant course-file work.", "Not specified in the order.", "Not specified in the order.", "1"),
+    (6, "Practical subjects and industrial attachment", "Survey work: Tk. 1,000 per course per student. Sessional: Tk. 320 per course per student. Architecture only: Tk. 115 per course per student per contact hour. Central viva: Tk. 150 per semester per student. Industrial attachment/training: Tk. 750 per student. Apply the sharing rules stated in the order.", "Sessional: minimum Tk. 1,600 per teacher per sessional course.", "Architecture-specific rate applies only to Architecture. Other maximums not specified.", "1"),
+    (7, "Thesis, project, oral examination and capstone", "Thesis/project examination: Tk. 3,000 per thesis/project per examiner. Preliminary oral: Tk. 100 per examinee per examiner. Final oral: Tk. 250 per examinee per examiner. Thesis/project supervision: Tk. 6,000 per thesis/project. Capstone project: Tk. 3,000 per student. Apply the relevant board/equal-sharing rules and year-semester scope in the order.", "Not specified, except the supervision cap noted at right.", "Thesis/project supervision: maximum Tk. 24,000 per supervisor.", "1"),
+    (8, "Invigilation and examination-supervision duties", "Chief invigilator: Tk. 1,200/hour. Additional chief invigilator: Tk. 1,100/hour. Other invigilator: Tk. 1,000/hour. Controller of examinations: Tk. 1,000/hour. Deputy controller: Tk. 900/shift. Programmer/assistant controller: Tk. 800/shift. Assistant officer to chief invigilator: Tk. 700/shift. Other officer: Tk. 550/shift. Assistant/third-class employee: Tk. 200/hour. Fourth-class employee: Tk. 175/hour.", "Not specified in the order.", "Not specified in the order.", "1–2"),
+    (9, "Grade-sheet preparation", "Theoretical subject: Tk. 60 per course per student. Practical subject: Tk. 50 per course per student. Shared equally among relevant teachers.", "Not specified in the order.", "Not specified in the order.", "2"),
+    (10, "Grade-sheet scrutiny", "Theoretical subject: Tk. 30 per course per student. Practical subject: Tk. 12 per course per student. Shared equally among relevant teachers.", "Not specified in the order.", "Not specified in the order.", "2"),
+    (11, "Tabulation", "Tk. 90 per student; shared equally among persons assigned to the same work.", "Not specified in the undergraduate section of the order.", "Not specified in the undergraduate section of the order.", "2"),
+    (12, "Advisory fee and final graduation-result verification", "Advisory fee: Tk. 250 per semester per student. Verification of final graduation result: Tk. 800 per student.", "Not specified in the order.", "Not specified in the order.", "2"),
+    (13, "Computerized result preparation", "Tk. 12 per course per student; shared among persons appointed for the same work.", "Not specified in the order.", "Not specified in the order.", "2"),
+    (14, "Student-wise grade and GPA list verification", "Tk. 24 per student; shared among teachers assigned to the same work.", "Not specified in the order.", "Not specified in the order.", "2"),
+    (15, "Chairman, examination committee honorarium", "Tk. 4,800 per semester. Regular, Review and Special examinations are considered separately as stated in the order.", "Not specified in the order.", "Not specified in the order.", "2"),
+    (16, "Course coordinator", "Tk. 3,600 per year per semester. Review examinations are included with Regular examinations. For Special Examination, one bill is payable for all years and semesters.", "Not specified in the order.", "Not specified in the order.", "2"),
+]
+
 SCHEMA = [
+"""CREATE TABLE IF NOT EXISTS remuneration_schedule_points(point_no INTEGER PRIMARY KEY, title TEXT NOT NULL, rate_details TEXT NOT NULL, minimum_bill TEXT NOT NULL, maximum_bill TEXT NOT NULL, source_page TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by INTEGER)""",
 """CREATE TABLE IF NOT EXISTS departments(id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, bill_owner INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1)""",
 """CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, email TEXT UNIQUE NOT NULL COLLATE NOCASE, full_name TEXT NOT NULL, salt TEXT NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL, department_id INTEGER, verified INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, failed_logins INTEGER NOT NULL DEFAULT 0, locked_until TEXT, created_at TEXT NOT NULL, FOREIGN KEY(department_id) REFERENCES departments(id))""",
 """CREATE TABLE IF NOT EXISTS email_tokens(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, FOREIGN KEY(user_id) REFERENCES users(id))""",
@@ -160,6 +182,9 @@ class Repository:
             for sql in SCHEMA: con.execute(sql)
             for name in TEACHING_DEPARTMENTS:
                 con.execute("INSERT OR IGNORE INTO departments(name,bill_owner) VALUES(?,?)", (name, int(name in BILL_DEPARTMENTS)))
+            # Seed the official undergraduate schedule once; later edits are preserved in SQLite.
+            for point_no, title, details, minimum, maximum, page_no in OFFICIAL_SCHEDULE_POINTS:
+                con.execute("INSERT OR IGNORE INTO remuneration_schedule_points(point_no,title,rate_details,minimum_bill,maximum_bill,source_page,updated_at,updated_by) VALUES(?,?,?,?,?,?,?,NULL)", (point_no,title,details,minimum,maximum,page_no,now_iso()))
             # Temporary no-verification mode: existing accounts become usable without email verification.
             con.execute("UPDATE users SET verified=1 WHERE verified=0")
             # Seed rates as drafts, never approved/active without authorized source review.
@@ -184,6 +209,23 @@ class Repository:
                 c.execute("ROLLBACK"); raise
 
 repo = Repository()
+
+# Public/no-sign-in mode: every visitor uses one shared System Administrator identity.
+# This removes the sign-in screen, but means anyone who can open the app can edit all data.
+PUBLIC_ACCESS_EMAIL = "public-access@exam-bill.local"
+
+def get_public_access_user() -> dict:
+    user = repo.one("SELECT * FROM users WHERE email=?", (PUBLIC_ACCESS_EMAIL,))
+    if user:
+        if not user["active"] or user["role"] != "System Administrator":
+            repo.execute("UPDATE users SET active=1, role='System Administrator', verified=1, department_id=NULL WHERE id=?", (user["id"],))
+        return repo.one("SELECT * FROM users WHERE email=?", (PUBLIC_ACCESS_EMAIL,))
+    salt, hashed = password_hash(secrets.token_urlsafe(48))
+    uid = repo.execute(
+        "INSERT INTO users(email,full_name,salt,password_hash,role,department_id,verified,active,created_at) VALUES(?,?,?,?,?,NULL,1,1,?)",
+        (PUBLIC_ACCESS_EMAIL, "Public Access User", salt, hashed, "System Administrator", now_iso()),
+    )
+    return repo.one("SELECT * FROM users WHERE id=?", (uid,))
 
 # ---------- Security and authorization ----------
 def require_role(user: dict, allowed: Iterable[str]):
@@ -377,33 +419,55 @@ def show_table(rows, key=None):
     if rows: st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
     else: st.info("No records yet.")
 
-def page_login():
-    st.title(APP_TITLE); st.caption("DUET undergraduate examination bill preparation, review and audit")
-    login_tab, reg_tab=st.tabs(["Sign in","Register"])
-    with login_tab:
-        with st.form("login_form"):
-            email=st.text_input("Email address",placeholder="you@example.com"); pw=st.text_input("Password",type="password"); ok=st.form_submit_button("Sign in",use_container_width=True)
-        if ok:
-            try: st.session_state.user=login_user(email,pw); st.rerun()
-            except Exception as e: st.error(str(e))
-    with reg_tab:
-        st.warning("Temporary open-registration mode: any valid email address is accepted without verification. Do not use this setting for a public production deployment; email ownership and institutional affiliation are not verified.")
-        deps=department_options()
-        with st.form("register_form"):
-            full=st.text_input("Full name"); remail=st.text_input("Email address",key="reg_email"); rpw=st.text_input("Create password (12+ characters)",type="password",key="reg_pw")
-            st.caption("New accounts receive Course Coordinator access. To initialize the app administrator, enter the deployment bootstrap token configured by the app owner.")
-            dep=st.selectbox("Department access scope",["Not assigned"]+[f"{d['id']} — {d['name']}" for d in deps])
-            bootstrap=st.text_input("Administrator bootstrap token (optional)",type="password",help="Leave blank for a standard account. Only works when EXAM_BILL_ADMIN_BOOTSTRAP_TOKEN is configured in Streamlit secrets.")
-            submitted=st.form_submit_button("Register")
-        if submitted:
-            try:
-                assigned_role=register_user(remail,full,rpw,"Course Coordinator",None if dep=="Not assigned" else int(dep.split(" — ")[0]),bootstrap)
-                st.success(f"Account created as {assigned_role}. You can sign in immediately; email verification is disabled in this temporary mode.")
-            except sqlite3.IntegrityError: st.error("An account with this email already exists.")
-            except Exception as e: st.error(str(e))
-
 def page_dashboard(user):
     st.header("Dashboard")
+    st.subheader("DUET revised undergraduate examination remuneration schedule")
+    st.caption("Source: Updated new Exam bill rate.pdf. The supplied PDF has undergraduate serial numbers 1–16 (not 12). Postgraduate/PhD rates are not included here. Minimum/maximum fields say ‘Not specified’ where the order does not state a limit.")
+
+    schedule = repo.rows("SELECT * FROM remuneration_schedule_points ORDER BY point_no")
+    summary = pd.DataFrame([{
+        "Point": r["point_no"],
+        "Bill item / category": r["title"],
+        "Bill rate(s)": r["rate_details"],
+        "Minimum bill / minimum rule": r["minimum_bill"],
+        "Maximum bill / maximum rule": r["maximum_bill"],
+        "PDF page": r["source_page"],
+    } for r in schedule])
+    st.dataframe(summary, use_container_width=True, hide_index=True, height=560,
+                 column_config={
+                     "Point": st.column_config.NumberColumn("Point", width="small"),
+                     "Bill item / category": st.column_config.TextColumn("Bill item / category", width="medium"),
+                     "Bill rate(s)": st.column_config.TextColumn("Bill rate(s)", width="large"),
+                     "Minimum bill / minimum rule": st.column_config.TextColumn("Minimum bill / minimum rule", width="medium"),
+                     "Maximum bill / maximum rule": st.column_config.TextColumn("Maximum bill / maximum rule", width="medium"),
+                     "PDF page": st.column_config.TextColumn("PDF page", width="small"),
+                 })
+
+    if user["role"] == "System Administrator":
+        with st.expander("Edit a remuneration point and save changes", expanded=False):
+            point_options = {f"Point {r['point_no']} — {r['title']}": r for r in schedule}
+            selected_label = st.selectbox("Select point", list(point_options.keys()), key="schedule_point_select")
+            selected = point_options[selected_label]
+            with st.form(f"edit_schedule_point_{selected['point_no']}"):
+                title = st.text_input("Point title", value=selected["title"])
+                details = st.text_area("Bill rates and conditions", value=selected["rate_details"], height=170)
+                minimum = st.text_area("Minimum bill / minimum rule", value=selected["minimum_bill"], height=90)
+                maximum = st.text_area("Maximum bill / maximum rule", value=selected["maximum_bill"], height=90)
+                source_page = st.text_input("PDF page(s)", value=selected["source_page"])
+                save = st.form_submit_button("Save this point", type="primary")
+            if save:
+                if not title.strip() or not details.strip():
+                    st.error("Point title and rate details cannot be empty.")
+                else:
+                    before = {k:selected[k] for k in ("title","rate_details","minimum_bill","maximum_bill","source_page")}
+                    repo.execute("UPDATE remuneration_schedule_points SET title=?,rate_details=?,minimum_bill=?,maximum_bill=?,source_page=?,updated_at=?,updated_by=? WHERE point_no=?",
+                                 (title.strip(),details.strip(),minimum.strip() or "Not specified in the order.",maximum.strip() or "Not specified in the order.",source_page.strip() or "Not confirmed",now_iso(),user["id"],selected["point_no"]))
+                    log_ui(user,"UPDATE","remuneration_schedule_point",selected["point_no"],before=before,after={"title":title.strip(),"rate_details":details.strip(),"minimum_bill":minimum.strip(),"maximum_bill":maximum.strip(),"source_page":source_page.strip()},reason="User edited the opening remuneration schedule")
+                    st.success(f"Point {selected['point_no']} saved to the app database.")
+                    st.rerun()
+        st.info("Edits are saved in the app's SQLite database and remain after app reruns as long as that database file persists. On Streamlit Cloud, configure durable storage if you need edits to survive instance replacement/redeployment.")
+
+    st.divider()
     sessions=visible_sessions(user); ids=[s["id"] for s in sessions]
     bills=repo.rows("SELECT b.*,t.full_name teacher,s.exam_name FROM bill_headers b JOIN teachers t ON t.id=b.teacher_id JOIN exam_sessions s ON s.id=b.session_id WHERE b.session_id IN ("+",".join("?" for _ in ids)+") ORDER BY b.id DESC",ids) if ids else []
     rates=repo.rows("SELECT approval_status,COUNT(*) n FROM rates GROUP BY approval_status")
@@ -411,7 +475,7 @@ def page_dashboard(user):
     cols=st.columns(4); cols[0].metric("Accessible sessions",len(sessions)); cols[1].metric("Draft bills",sum(b["status"]=="Draft" for b in bills)); cols[2].metric("Approved bills",sum(b["status"]=="Approved" for b in bills)); cols[3].metric("Unresolved reconciliation rows",unresolved)
     st.subheader("Recent examination sessions"); show_table(sessions[:10])
     st.subheader("Rate approval status"); show_table(rates)
-    st.caption("Only records in your authorized department scope are shown. Historical archive counts are not reused as current quantities.")
+    st.caption("The schedule summary is editable for reference and planning. Editing it does not automatically approve or change the separate bill-calculation rate records under Financial rates. Confirm official rates and approval status before generating payable bills.")
 
 def page_sessions(user):
     st.header("Examination sessions")
@@ -711,22 +775,18 @@ def page_users_settings(user):
 def main():
     st.set_page_config(page_title=APP_TITLE,page_icon="📑",layout="wide",initial_sidebar_state="expanded")
     st.markdown("""<style>.block-container{padding-top:1.3rem;max-width:1500px}.stMetric{border:1px solid #d8dee8;padding:12px;border-radius:8px}.app-foot{color:#64748b;font-size:.82rem;border-top:1px solid #ddd;padding-top:10px}</style>""",unsafe_allow_html=True)
-    if "user" not in st.session_state or not st.session_state.user:
-        page_login(); st.markdown(f"<div class='app-foot'>{DEVELOPER}</div>",unsafe_allow_html=True); return
-    user=st.session_state.user
-    # Re-check current account state on each rerun, rather than trusting session state alone.
-    current=repo.one("SELECT verified,active,role,department_id FROM users WHERE id=?",(user["id"],))
-    if not current or not current["active"]:
-        st.session_state.pop("user",None); st.error("Your account is inactive. Please sign in again."); st.rerun()
-    user.update({k:current[k] for k in ("verified","active","role","department_id")})
+    # No sign-in or registration screen. All visitors share a single public admin identity.
+    # WARNING: anyone with the app URL can create, edit, approve, export, or delete accessible records.
+    user = get_public_access_user()
+    st.session_state.user = user
     with st.sidebar:
         st.title("Exam Bill Calculator")
-        st.caption(f"Signed in: {user['full_name']}")
-        st.caption(f"Role: {user['role']}")
+        st.caption("Access mode: Public (no sign-in)")
+        st.caption("Role: System Administrator (shared access)")
         st.caption("Scope: " + (repo.one("SELECT name FROM departments WHERE id=?",(user["department_id"],))["name"] if user.get("department_id") and repo.one("SELECT name FROM departments WHERE id=?",(user["department_id"],)) else "System-wide / unassigned"))
         pages=["Dashboard","Examination sessions","Departments and class groups","Courses and teachers","Duty assignments","Financial rates","Individual and consolidated bills","Excel import and reconciliation","Review and approval","Reports and exports","User administration","Settings","About"]
         page=st.radio("Navigation",pages,label_visibility="collapsed")
-        if st.button("Log out",use_container_width=True): repo.audit(user,"LOGOUT","user",user["id"]); st.session_state.pop("user",None); st.rerun()
+        st.warning("Public access is enabled. Anyone with this link has administrator access.")
         st.divider(); st.caption(DEVELOPER)
     try:
         if page=="Dashboard": page_dashboard(user)
