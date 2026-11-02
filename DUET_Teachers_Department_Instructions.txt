@@ -1,0 +1,35 @@
+DUET EXAM BILL CALCULATOR — TEACHERS MENU FIX
+
+WHAT CHANGED
+1. Teachers menu now has an All Departments option and a separate department filter for each DUET department.
+2. The list under each department shows only teachers assigned to that department, with department, name and designation columns.
+3. Historical examiner names are no longer automatically added as unassigned teachers. A person's exam duty in a department is not proof that it is their home department.
+4. Only teachers with a department assignment appear in the Teachers list and in the Reports teacher dropdown.
+5. New teachers must be added under a specific home department. Existing teachers can be edited and moved to a department.
+6. Department seed includes official faculty entries available from the public DUET faculty pages. Some department rosters in the public search excerpts were incomplete, so review the list against the live official page and add any missing current teachers using Add teacher to a department.
+
+FILES
+- exam_bill_calculator_1_2.py: Streamlit app
+- requirements.txt: Python dependencies
+
+DEPLOYMENT
+Upload both files to the root of your GitHub main branch, replacing the old app file. Reboot/redeploy the Streamlit Cloud app.
+
+OFFICIAL SOURCES CONSULTED
+https://duet.ac.bd/department/fe/faculty-member
+https://duet.ac.bd/department/ce/faculty-member
+https://www.duet.ac.bd/department/eee/faculty-member
+https://www.duet.ac.bd/department/cse/faculty-member
+https://www.duet.ac.bd/department/me/faculty-member
+https://www.duet.ac.bd/department/te/faculty-member
+https://duet.ac.bd/department/ipe/faculty-member
+https://www.duet.ac.bd/department/arch/faculty-member
+https://www.duet.ac.bd/department/che/faculty-member
+https://www.duet.ac.bd/department/mme/faculty-member
+https://www.duet.ac.bd/department/chem/faculty-member
+https://www.duet.ac.bd/department/math/faculty-member
+https://www.duet.ac.bd/department/phy/faculty-member
+https://www.duet.ac.bd/department/hss/faculty-member
+
+NOTE
+Some source pages only exposed partial faculty lists in the available public page excerpts. The app does not claim that every current faculty member is included. Verify each department's full current roster before official use.
