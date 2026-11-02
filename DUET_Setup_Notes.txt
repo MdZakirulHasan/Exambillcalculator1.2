@@ -1,0 +1,45 @@
+DUET EXAM BILL CALCULATOR - DEPLOYMENT AND RATE NOTES
+
+Files
+- exam_bill_calculator_1_2.py: Streamlit application
+- requirements.txt: Python package dependencies
+
+Deploy
+1. Upload both files to the root of the GitHub main branch.
+2. In Streamlit Community Cloud, use exam_bill_calculator_1_2.py as the app file.
+3. Reboot/redeploy so requirements.txt is installed.
+4. The app uses exam_bill_calculator_v3.sqlite3 by default. Set EXAM_BILL_DB only if you have a compatible persistent database.
+
+Teacher departments
+- Department names and a limited set of faculty names/designations were checked against DUET's public website on 2 November 2026.
+- Food Engineering entries were taken from the public Food Engineering faculty page. For other departments, the initial public-source seed contains the department head only, not the complete current faculty roster.
+- Historical names taken from the supplied examination-bill archive remain unassigned unless their home department can be verified. The department in which a person performed an exam duty must not be treated as their home department.
+- Please verify/update names and designations from the live DUET website before official use.
+
+Bill rate limits initialized from the supplied DUET_Exam_Bill_Calculator_1_2_Master_Prompt.txt (which transcribes the revised official rate PDF):
+- Question-paper moderation: minimum Tk 2,000; maximum Tk 5,000 per moderator/year-semester scope.
+- Answer-script examination: minimum Tk 1,000 per examiner per section.
+- Answer-script scrutiny: minimum Tk 1,500 per scrutinizer per year-semester; maximum two scrutinizers in that scope.
+- Sessional (practical subjects): minimum Tk 1,600 per teacher per course.
+- Sessional (Architecture special rate): minimum Tk 1,600 per teacher per course.
+- Thesis/project supervision: maximum Tk 24,000 per supervisor.
+- A minimum/maximum value of 0 means no configured limit.
+
+Calculation scope
+When adding a duty line, use the same Calculation scope text for all lines that belong to the same rule scope. Examples:
+- Answer-script examination: Section A or Section B (per examiner per section).
+- Scrutiny/moderation: the same year-semester label.
+- Sessional: course code (per teacher per course).
+- Thesis/project supervision: Supervisor overall (to apply the cap across the supervisor's lines in that bill).
+The app aggregates lines with the same teacher, bill item, and scope and proportionally allocates the bounded amount across those lines. The scrutiny limit checks that no more than two distinct teachers are assigned that item in one examination key.
+
+Important limitations
+- The supplied master prompt is used for the financial rules. Some distribution/eligibility interpretations are explicitly marked for authorized verification in that prompt. Do not treat this app as an official approval of rates.
+- Shared items must be entered at each teacher's actual allocated share; this version does not automatically determine committee membership or distribute a shared pool without those assignments.
+- Use actual eligible quantities from the audit sheet, not total class size by default.
+- Local SQLite data on Streamlit Cloud may not survive rebuilds unless persistent storage is configured. Back up the database before replacing the app or database file.
+
+Official DUET pages consulted
+https://duet.ac.bd/department/fe/faculty-member
+https://duet.ac.bd/public/admin-bodies/heads-of-the-department
+https://duet.ac.bd/public/statistics/departments
