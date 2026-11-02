@@ -383,75 +383,27 @@ else: # Reports: audit-entry input + teacher-wise Excel export
         if not teacherlist: st.warning("No teachers assigned to this department yet. Go to Teachers and assign the relevant teachers.")
         if not ratelist: st.warning("No active bill rates. Check Bill Rates menu.")
         if teacherlist and ratelist:
-            # Option-based manual form modeled on the supplied FE audit sheets.
-            # Each audit-sheet section filters the saved rate list; no file upload is used.
-            audit_sections = {
-                "Paper-setters & examiners": ["question paper setting", "answer-script examination"],
-                "Question-paper preparation": ["typing", "comparison", "printing", "moderation"],
-                "Answer-script scrutiny": ["scrutiny"],
-                "Assessment & class tests": ["assignment assessment", "class test"],
-                "Sessional / practical examination": ["sessional", "central viva", "survey work"],
-                "Grade sheet / result / tabulation": ["grade-sheet", "tabulation", "computerized result", "grade and gpa", "verification of final", "advisory fee"],
-                "Project / thesis / training": ["thesis", "project", "industrial attachment", "capstone", "preliminary oral", "final oral"],
-                "Examination committee / invigilation / staff": ["chairman", "invigilator", "controller", "officer", "employee", "course coordinator"],
-                "Other approved bill item": []
-            }
-            with st.expander("How to enter from the audit sheet", expanded=True):
-                st.markdown("""Choose the relevant audit-sheet section, then select the teacher, course (where applicable), bill item and quantity. For example, the paper-setter/examiner table uses **number of question papers** and **number of answer scripts**; scrutiny uses the eligible scripts; the question-paper-work table uses **number of questions**. The app calculates from the saved rate and applies its configured minimum/maximum. Confirm any shared-fee distribution and unclear official rule before approval.""")
             with st.form("add_duty_line"):
-                section = st.selectbox("1. Audit-sheet section", list(audit_sections.keys()))
-                if section == "Other approved bill item":
-                    section_rates = ratelist
-                else:
-                    keys = audit_sections[section]
-                    section_rates = [r for r in ratelist if any(k in r['item'].lower() for k in keys)]
-                    if not section_rates:
-                        section_rates = ratelist
                 a,b=st.columns(2)
-                with a:
-                    teacher=st.selectbox("2. Teacher / duty recipient",teacherlist,format_func=lambda x:f"{x['name']} — {x['home_department'] or 'Home department unverified'}")
-                    rate=st.selectbox("3. Bill item / duty",section_rates,format_func=lambda x:f"{x['item']} — Tk {x['rate']:,.2f} / {x['unit']}")
-                with b:
-                    course=st.selectbox("4. Course (select if this duty is course-specific)",[None]+courselist,format_func=lambda x:"Not course-specific" if x is None else f"{x['course_department']} · {x['code']} — {x['title']}")
-                    item_lower = rate['item'].lower()
-                    if "question paper setting" in item_lower or "typing" in item_lower or "printing" in item_lower or "comparison" in item_lower:
-                        qty_label="Quantity: number of question papers / questions"
-                    elif "script" in item_lower or "scrutiny" in item_lower:
-                        qty_label="Quantity: number of answer scripts"
-                    elif "student" in rate['unit'].lower() or "per student" in rate['unit'].lower():
-                        qty_label="Quantity: number of eligible students"
-                    elif "hour" in rate['unit'].lower():
-                        qty_label="Quantity: eligible hours"
-                    elif "shift" in rate['unit'].lower():
-                        qty_label="Quantity: eligible shifts"
-                    else:
-                        qty_label="Quantity: eligible units according to saved rate unit"
-                    qty=st.number_input(qty_label,min_value=0.0,value=0.0,step=1.0)
-                scope_default = current['year_semester']
-                if "scrutiny" in rate['item'].lower() or "moderation" in rate['item'].lower():
-                    scope_default = f"{current['year_semester']}"
-                elif course is not None and any(k in rate['item'].lower() for k in ["sessional", "assignment", "grade-sheet", "course file", "class test", "survey"]):
-                    scope_default = f"{current['year_semester']} | {course['code']}"
-                scope=st.text_input("5. Calculation scope / audit reference",value=scope_default,help="Use the same scope for entries sharing one minimum/maximum limit. Examples: year-semester; year-semester + course; section A/B.")
-                desc=st.text_input("6. Description / audit-sheet note",value=rate['item'])
-                with st.expander("Advanced: authorized rate adjustment", expanded=False):
-                    rate_override=st.number_input("Rate override (BDT; normally keep the saved rate)",min_value=0.0,value=float(rate['rate']),step=1.0)
-                add=st.form_submit_button("Add duty to teacher's bill",type="primary")
+                with a: teacher=st.selectbox("Teacher",teacherlist,format_func=lambda x:f"{x['name']} — {x['home_department'] or 'Home department unverified'}"); rate=st.selectbox("Bill item",ratelist,format_func=lambda x:f"{x['item']} — Tk {x['rate']:,.2f} / {x['unit']}")
+                with b: course=st.selectbox("Course (optional)",[None]+courselist,format_func=lambda x:"Not course-specific" if x is None else f"{x['course_department']} · {x['code']} — {x['title']}"); qty=st.number_input("Eligible quantity (scripts/students/hours/shifts, per rate unit)",min_value=0.0,value=0.0,step=1.0)
+                scope=st.text_input("Calculation scope (required)",value=current['year_semester'],help="Use the same scope text for lines sharing one limit. Answer-script examination: Section A/B; scrutiny/moderation: year-semester; sessional: course code; supervision: Supervisor overall.")
+                desc=st.text_input("Description / audit-sheet note",value=rate['item']); rate_override=st.number_input("Rate override (BDT; leave equal to saved rate)",min_value=0.0,value=float(rate['rate']),step=1.0)
+                add=st.form_submit_button("Add audit-sheet line")
             if add:
                 if not scope.strip(): st.error("Calculation scope is required."); st.stop()
-                if qty <= 0: st.error("Quantity must be greater than zero."); st.stop()
                 existing=rows("SELECT id FROM bills WHERE exam_key=? AND teacher_id=?",(current['exam_key'],teacher['id']))
                 if "scrutiny" in rate['item'].lower():
                     claimed=rows("SELECT DISTINCT b.teacher_id FROM bills b JOIN bill_lines l ON l.bill_id=b.id WHERE b.department_id=? AND b.degree=? AND b.year_semester=? AND b.exam_year=? AND l.rate_id=?",(current['department_id'],current['degree'],current['year_semester'],current['exam_year'],rate['id']))
                     if len(claimed)>=2 and not any(int(x['teacher_id'])==int(teacher['id']) for x in claimed):
-                        st.error("The configured rule allows a maximum of two scrutinizers for this year-semester."); st.stop()
+                        st.error("The official rule allows a maximum of two scrutinizers for this year-semester."); st.stop()
                 if existing: bid=existing[0]['id']
                 else: bid=run("INSERT INTO bills(exam_key,department_id,teacher_id,degree,year_semester,exam_name,exam_year,exam_type,created_at) VALUES(?,?,?,?,?,?,?,?,?)",(current['exam_key'],current['department_id'],teacher['id'],current['degree'],current['year_semester'],current['exam_name'],current['exam_year'],current['exam_type'],datetime.now().isoformat(timespec='seconds')))
                 amount=calc_amount(qty,rate_override,0,0)
                 run("INSERT INTO bill_lines(bill_id,rate_id,course_id,description,quantity,rate,amount,scope_key) VALUES(?,?,?,?,?,?,?,?)",(bid,rate['id'],course['id'] if course else None,desc.strip() or rate['item'],float(qty),float(rate_override),amount,scope.strip().casefold()))
                 recalculate_scope(bid,rate['id'],scope.strip().casefold(),float(rate['minimum']),float(rate['maximum']))
                 refreshed=rows("SELECT amount FROM bill_lines WHERE bill_id=? AND rate_id=? AND scope_key=? ORDER BY id DESC LIMIT 1",(bid,rate['id'],scope.strip().casefold()))
-                st.success(f"Duty added. Amount after configured scope limits: Tk {refreshed[0]['amount']:,.2f}"); st.rerun()
+                st.success(f"Line added. Amount after scope limits: Tk {refreshed[0]['amount']:,.2f}"); st.rerun()
         bills=rows("SELECT b.*,t.name teacher_name,t.designation,d.name department FROM bills b JOIN teachers t ON t.id=b.teacher_id JOIN departments d ON d.id=b.department_id WHERE b.exam_key=? ORDER BY t.name",(current['exam_key'],))
         if bills:
             st.subheader("Teacher-wise bill preview")
